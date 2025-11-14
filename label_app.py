@@ -9,6 +9,8 @@ app = Flask(__name__)
 DATASET_DIR = Path("embryo_dataset")
 TRUE_IMAGES_FILE = Path("true_images.txt")
 TRUE_IMAGES_BACKUP_FILE = Path("true_images_backup.txt")
+FALSE_IMAGES_FILE = Path("true_images.txt")
+FALSE_IMAGES_BACKUP_FILE = Path("true_images_backup.txt")
 
 # Create necessary directories
 DATASET_DIR.mkdir(exist_ok=True)
@@ -116,7 +118,11 @@ def label_image():
             f.write(f"{image_path}\n")
         with open(TRUE_IMAGES_BACKUP_FILE, 'a') as f:
             f.write(f"{image_path}\n")
-    
+    else:
+        with open(FALSE_IMAGES_FILE, 'a') as f:
+            f.write(f"{image_path}\n")
+        with open(FALSE_IMAGES_BACKUP_FILE, 'a') as f:
+            f.write(f"{image_path}\n")
     # Add to history stack
     _label_history.append({
         'image_path': image_path,
@@ -183,7 +189,40 @@ def undo_last():
 
                 with open(TRUE_IMAGES_BACKUP_FILE, 'w') as f:
                     f.writelines(lines_reversed[::-1])
+        else:
+            # Remove from main file
+            if FALSE_IMAGES_FILE.exists():
+                with open(FALSE_IMAGES_FILE, 'r') as f:
+                    lines = f.readlines()
 
+                # Remove the last occurrence of this image path
+                # Write back all lines except the last occurrence
+                lines_reversed = lines[::-1]
+                removed = False
+                for i, line in enumerate(lines_reversed):
+                    if line.strip() == image_path and not removed:
+                        lines_reversed.pop(i)
+                        removed = True
+                        break
+
+                with open(FALSE_IMAGES_FILE, 'w') as f:
+                    f.writelines(lines_reversed[::-1])
+
+            # Remove from backup file
+            if FALSE_IMAGES_BACKUP_FILE.exists():
+                with open(FALSE_IMAGES_BACKUP_FILE, 'r') as f:
+                    lines = f.readlines()
+
+                lines_reversed = lines[::-1]
+                removed = False
+                for i, line in enumerate(lines_reversed):
+                    if line.strip() == image_path and not removed:
+                        lines_reversed.pop(i)
+                        removed = True
+                        break
+
+                with open(FALSE_IMAGES_BACKUP_FILE, 'w') as f:
+                    f.writelines(lines_reversed[::-1])
         return jsonify({
             'success': True,
             'image_path': image_path,
@@ -201,11 +240,16 @@ def get_stats():
     if TRUE_IMAGES_FILE.exists():
         with open(TRUE_IMAGES_FILE, 'r') as f:
             true_count = len(f.readlines())
+    false_count = 0
+    if FALSE_IMAGES_FILE.exists():
+        with open(FALSE_IMAGES_FILE, 'r') as f:
+            false_count = len(f.readlines())
 
     remaining = len(get_all_images())
 
     return jsonify({
         'true': true_count,
+        'false': false_count,
         'remaining': remaining,
         'total': true_count + remaining
     })
