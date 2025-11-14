@@ -481,6 +481,17 @@
             loadImage();
             // Update stats every 5 seconds
             setInterval(updateStats, 5000);
+
+            // Add keyboard shortcut for space bar to click Empty button
+            document.addEventListener('keydown', (event) => {
+                if (event.code === 'Space' && !event.repeat) {
+                    event.preventDefault();
+                    const trueBtn = document.getElementById('trueBtn');
+                    if (!trueBtn.disabled) {
+                        labelImage('true');
+                    }
+                }
+            });
         });
     </script>
 </body>
