@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Embryo Image Labeler</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 900px;
+            width: 100%;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px solid #eee;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 5px;
+        }
+
+        .image-container {
+            display: flex;
+            justify-content: center;
+            margin: 40px 0;
+            min-height: 400px;
+            background: #f5f5f5;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .image-container img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            font-size: 18px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin-right: 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 15px 40px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .btn-true {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-true:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-false {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .btn-false:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(245, 87, 108, 0.4);
+        }
+
+        .btn-undo {
+            background: linear-gradient(135deg, #ffa726 0%, #fb8c00 100%);
+            color: white;
+            flex: 0 1 auto;
+            min-width: 120px;
+        }
+
+        .btn-undo:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(255, 167, 38, 0.4);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .error.show {
+            display: block;
+        }
+
+        .success-message {
+            background: #efe;
+            color: #3c3;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            margin: 15px 0;
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+
+        .success-message.show {
+            display: block;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .info {
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 22px;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            button {
+                min-width: 100%;
+            }
+
+            .stats {
+                flex-direction: column;
+                gap: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧬 Embryo Image Labeler</h1>
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-number" id="trueCount">0</div>
+                    <div class="stat-label">Labeled True</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number" id="falseCount">0</div>
+                    <div class="stat-label">Labeled False</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number" id="remainingCount">0</div>
+                    <div class="stat-label">Remaining</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="error" id="error"></div>
+        <div class="success-message" id="successMessage"></div>
+
+        <div class="image-container" id="imageContainer">
+            <div class="loading">
+                <div class="spinner"></div>
+                Loading image...
+            </div>
+        </div>
+
+        <div class="button-group">
+            <button class="btn-true" id="trueBtn" onclick="labelImage('true')">
+                Empty!
+            </button>
+            <button class="btn-false" id="falseBtn" onclick="labelImage('false')">
+                There's an embryo
+            </button>
+        </div>
+
+        <div class="button-group" style="margin-top: 15px;">
+            <button class="btn-undo" id="undoBtn" onclick="undoLast()">
+                ↶ Undo Last
+            </button>
+        </div>
+
+        <div class="info">
+            Click a button to label the image and move to the next one
+        </div>
+    </div>
+
+    <script>
+        let currentImagePath = null;
+        let nextImageData = null;
+        let preloadedImage = null;
+
+        async function fetchNextImage() {
+            try {
+                const response = await fetch('/api/next-image');
+                if (!response.ok) {
+                    return null;
+                }
+                return await response.json();
+            } catch (error) {
+                console.error('Failed to fetch next image:', error);
+                return null;
+            }
+        }
+
+        function preloadImage(imageUrl) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.onerror = reject;
+                img.src = imageUrl;
+            });
+        }
+
+        async function loadImage() {
+            try {
+                // Use preloaded data if available, otherwise fetch
+                const data = nextImageData || await fetchNextImage();
+
+                if (!data) {
+                    showError('No images found. Please add images to the embryo_dataset directory.');
+                    document.getElementById('trueBtn').disabled = true;
+                    document.getElementById('falseBtn').disabled = true;
+                    return;
+                }
+
+                currentImagePath = data.image_path;
+
+                // Use preloaded image if available, otherwise create new one
+                const imageContainer = document.getElementById('imageContainer');
+                if (preloadedImage && preloadedImage.src.includes(data.image_url)) {
+                    imageContainer.innerHTML = '';
+                    imageContainer.appendChild(preloadedImage);
+                } else {
+                    imageContainer.innerHTML = `<img src="${data.image_url}" alt="Embryo image">`;
+                }
+
+                hideError();
+                document.getElementById('trueBtn').disabled = false;
+                document.getElementById('falseBtn').disabled = false;
+
+                // Immediately start preloading the next image
+                fetchNextImage().then(async (nextData) => {
+                    if (nextData) {
+                        nextImageData = nextData;
+                        try {
+                            preloadedImage = await preloadImage(nextData.image_url);
+                        } catch (error) {
+                            console.error('Failed to preload image:', error);
+                        }
+                    }
+                });
+            } catch (error) {
+                showError('Failed to load image: ' + error.message);
+            }
+        }
+
+        async function labelImage(label) {
+            if (!currentImagePath) return;
+
+            document.getElementById('trueBtn').disabled = true;
+            document.getElementById('falseBtn').disabled = true;
+
+            try {
+                // Start loading next image immediately (don't wait for API response)
+                loadImage();
+
+                // Label current image in background
+                const response = await fetch('/api/label', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        image_path: currentImagePath,
+                        label: label
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to label image');
+                }
+
+                updateStats();
+            } catch (error) {
+                showError('Failed to label image: ' + error.message);
+                document.getElementById('trueBtn').disabled = false;
+                document.getElementById('falseBtn').disabled = false;
+            }
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = message;
+            errorDiv.classList.add('show');
+        }
+
+        function hideError() {
+            document.getElementById('error').classList.remove('show');
+        }
+
+        function showSuccess(message) {
+            const successDiv = document.getElementById('successMessage');
+            successDiv.textContent = message;
+            successDiv.classList.add('show');
+            setTimeout(() => {
+                successDiv.classList.remove('show');
+            }, 2000);
+        }
+
+        async function undoLast() {
+            document.getElementById('undoBtn').disabled = true;
+            document.getElementById('trueBtn').disabled = true;
+            document.getElementById('falseBtn').disabled = true;
+
+            try {
+                const response = await fetch('/api/undo', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                if (!response.ok) {
+                    const data = await response.json();
+                    showError(data.error || 'Failed to undo');
+                    document.getElementById('undoBtn').disabled = false;
+                    document.getElementById('trueBtn').disabled = false;
+                    document.getElementById('falseBtn').disabled = false;
+                    return;
+                }
+
+                const data = await response.json();
+
+                // Show the undone image
+                currentImagePath = data.image_path;
+                const imageContainer = document.getElementById('imageContainer');
+                imageContainer.innerHTML = `<img src="${data.image_url}" alt="Embryo image">`;
+
+                // Clear preloaded data since we're showing a different image
+                nextImageData = null;
+                preloadedImage = null;
+
+                // Preload the next image
+                fetchNextImage().then(async (nextData) => {
+                    if (nextData) {
+                        nextImageData = nextData;
+                        try {
+                            preloadedImage = await preloadImage(nextData.image_url);
+                        } catch (error) {
+                            console.error('Failed to preload image:', error);
+                        }
+                    }
+                });
+
+                showSuccess(`Undone: ${data.label === 'true' ? 'Empty' : 'Has embryo'}`);
+                updateStats();
+            } catch (error) {
+                showError('Failed to undo: ' + error.message);
+            } finally {
+                document.getElementById('undoBtn').disabled = false;
+                document.getElementById('trueBtn').disabled = false;
+                document.getElementById('falseBtn').disabled = false;
+            }
+        }
+
+        async function updateStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const stats = await response.json();
+                document.getElementById('trueCount').textContent = stats.true;
+                document.getElementById('falseCount').textContent = stats.false;
+                document.getElementById('remainingCount').textContent = stats.remaining;
+            } catch (error) {
+                console.error('Failed to update stats:', error);
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            updateStats();
+            loadImage();
+            // Update stats every 5 seconds
+            setInterval(updateStats, 5000);
+        });
+    </script>
+</body>
+</html>
