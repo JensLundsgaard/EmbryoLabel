@@ -8,6 +8,7 @@ app = Flask(__name__)
 # Configuration
 DATASET_DIR = Path("embryo_dataset")
 TRUE_IMAGES_FILE = Path("true_images.txt")
+TRUE_IMAGES_BACKUP_FILE = Path("true_images_backup.txt")
 
 # Create necessary directories
 DATASET_DIR.mkdir(exist_ok=True)
@@ -109,11 +110,13 @@ def label_image():
     if not source_path.exists():
         return jsonify({'error': 'Image not found'}), 404
 
-    # If label is 'true', append to the text file
+    # If label is 'true', append to both text files
     if label == 'true':
         with open(TRUE_IMAGES_FILE, 'a') as f:
             f.write(f"{image_path}\n")
-
+        with open(TRUE_IMAGES_BACKUP_FILE, 'a') as f:
+            f.write(f"{image_path}\n")
+    
     # Add to history stack
     _label_history.append({
         'image_path': image_path,
@@ -145,8 +148,9 @@ def undo_last():
         image_path = last_label['image_path']
         label = last_label['label']
 
-        # If it was labeled 'true', remove it from the file
+        # If it was labeled 'true', remove it from both files
         if label == 'true':
+            # Remove from main file
             if TRUE_IMAGES_FILE.exists():
                 with open(TRUE_IMAGES_FILE, 'r') as f:
                     lines = f.readlines()
@@ -162,6 +166,22 @@ def undo_last():
                         break
 
                 with open(TRUE_IMAGES_FILE, 'w') as f:
+                    f.writelines(lines_reversed[::-1])
+
+            # Remove from backup file
+            if TRUE_IMAGES_BACKUP_FILE.exists():
+                with open(TRUE_IMAGES_BACKUP_FILE, 'r') as f:
+                    lines = f.readlines()
+
+                lines_reversed = lines[::-1]
+                removed = False
+                for i, line in enumerate(lines_reversed):
+                    if line.strip() == image_path and not removed:
+                        lines_reversed.pop(i)
+                        removed = True
+                        break
+
+                with open(TRUE_IMAGES_BACKUP_FILE, 'w') as f:
                     f.writelines(lines_reversed[::-1])
 
         return jsonify({
@@ -195,5 +215,6 @@ if __name__ == '__main__':
     print("Starting Embryo Image Labeler Server...")
     print(f"Dataset directory: {DATASET_DIR.absolute()}")
     print(f"True images file: {TRUE_IMAGES_FILE.absolute()}")
+    print(f"Backup file: {TRUE_IMAGES_BACKUP_FILE.absolute()}")
     print("Server running at http://localhost:5000")
     app.run(debug=True, host='0.0.0.0', port=5000)
