@@ -264,10 +264,13 @@
         </div>
 
         <div class="button-group">
-            <button class="btn-true" id="trueBtn" onclick="labelImage('true')">
+            <!-- onclick="debounce(function(){
+    labelImage('true')
+}, 250)" -->
+            <button class="btn-true" id="trueBtn" > 
                 Empty!
             </button>
-            <button class="btn-false" id="falseBtn" onclick="labelImage('false')">
+            <button class="btn-false" id="falseBtn">
                 There's an embryo
             </button>
         </div>
@@ -285,6 +288,25 @@
     </div>
 
     <script>
+        
+
+
+        function debounce(fun, mil){
+            var timer; 
+            return function(){
+            clearTimeout(timer); 
+            timer = setTimeout(function(){
+                fun(); 
+            }, mil); 
+        };
+        }
+        document.getElementById('trueBtn').onclick = debounce(function(){
+           labelImage("true")
+        }, 100);
+        document.getElementById('falseBtn').onclick = debounce(function(){
+            labelImage("false")
+        }, 100);
+
         let currentImagePath = null;
         let nextImageData = null;
         let preloadedImage = null;
@@ -357,6 +379,9 @@
         async function labelImage(label) {
             if (!currentImagePath) return;
 
+            // Save the current image path before loadImage() changes it
+            const imageToLabel = currentImagePath;
+
             document.getElementById('trueBtn').disabled = true;
             document.getElementById('falseBtn').disabled = true;
 
@@ -371,7 +396,7 @@
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        image_path: currentImagePath,
+                        image_path: imageToLabel,
                         label: label
                     })
                 });
