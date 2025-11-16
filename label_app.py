@@ -9,8 +9,8 @@ app = Flask(__name__)
 DATASET_DIR = Path("embryo_dataset")
 TRUE_IMAGES_FILE = Path("true_images.txt")
 TRUE_IMAGES_BACKUP_FILE = Path("true_images_backup.txt")
-FALSE_IMAGES_FILE = Path("true_images.txt")
-FALSE_IMAGES_BACKUP_FILE = Path("true_images_backup.txt")
+FALSE_IMAGES_FILE = Path("false_images.txt")
+FALSE_IMAGES_BACKUP_FILE = Path("false_images_backup.txt")
 
 # Create necessary directories
 DATASET_DIR.mkdir(exist_ok=True)
